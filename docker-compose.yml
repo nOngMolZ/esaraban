@@ -1,0 +1,36 @@
+services:
+  esaraban:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: esaraban-app:latest
+    container_name: esaraban
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/var/www/storage    # ให้ Laravel เขียนไฟล์ได้
+      # - ./public:/var/www/public      # ถ้าต้องการแก้ไข assets/public แบบ hot-reload (optional)
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro  # Nginx config
+      - ./.env:/var/www/.env:ro
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      
+      # HTTPS Router
+      - "traefik.http.routers.esaraban.rule=Host(`esarabun.ct.ac.th`)"
+      - "traefik.http.routers.esaraban.entrypoints=websecure"
+      - "traefik.http.routers.esaraban.tls.certresolver=myresolver"
+      
+      # HTTP Router with redirect
+      - "traefik.http.routers.esaraban-http.rule=Host(`esarabun.ct.ac.th`)"
+      - "traefik.http.routers.esaraban-http.entrypoints=web"
+      - "traefik.http.routers.esaraban-http.middlewares=https-redirect@file"
+      
+      # Service
+      - "traefik.http.services.esaraban.loadbalancer.server.port=80"
+
+networks:
+  traefik:
+    external: true
